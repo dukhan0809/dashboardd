@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emaar Properties – Market Data Analysis</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a; /* Dark background */
+            color: #e0e0e0; /* Light grey text */
+        }
+        .text-neon-green {
+            color: #39ff14;
+        }
+        .bg-dark-card {
+            background-color: #2a2a2a; /* Slightly lighter dark for cards */
+        }
+        .border-neon-green {
+            border-color: #39ff14;
+        }
+        .text-gold {
+            color: #C5A253;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px; /* Fixed height for charts */
+            width: 100%;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #39ff14;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2aff00;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 overflow-y-auto">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Dashboard Title -->
+        <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 text-white">
+            Emaar Properties – <span class="text-gold">10-Year Market Data Analysis</span> (2015–2025)
+        </h1>
+
+        <!-- Filters/Slicers -->
+        <div class="bg-dark-card rounded-lg shadow-lg p-6 mb-8 flex flex-wrap gap-4 justify-center items-center">
+            <div class="flex flex-col">
+                <label for="year-filter" class="text-sm font-medium text-e0e0e0 mb-1">Year:</label>
+                <select id="year-filter" class="p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-neon-green focus:border-neon-green">
+                    <!-- Options will be populated by JS -->
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label for="segment-filter" class="text-sm font-medium text-e0e0e0 mb-1">Business Segment:</label>
+                <select id="segment-filter" class="p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-neon-green focus:border-neon-green">
+                    <option value="All">All</option>
+                    <option value="Residential">Residential</option>
+                    <option value="Commercial">Commercial</option>
+                    <option value="Malls">Malls</option>
+                    <option value="Hospitality">Hospitality</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label for="region-filter" class="text-sm font-medium text-e0e0e0 mb-1">Region:</label>
+                <select id="region-filter" class="p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-neon-green focus:border-neon-green">
+                    <option value="All">All</option>
+                    <option value="Dubai">Dubai</option>
+                    <option value="Abu Dhabi">Abu Dhabi</option>
+                    <option value="Egypt">Egypt</option>
+                    <option value="Other International">Other International</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label for="currency-toggle" class="text-sm font-medium text-e0e0e0 mb-1">Currency:</label>
+                <select id="currency-toggle" class="p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-neon-green focus:border-neon-green">
+                    <option value="AED">AED</option>
+                    <option value="USD">USD</option>
+                </select>
+            </div>
+            <div class="flex flex-col">
+                <label for="chart-mode-toggle" class="text-sm font-medium text-e0e0e0 mb-1">Chart Mode:</label>
+                <select id="chart-mode-toggle" class="p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-neon-green focus:border-neon-green">
+                    <option value="absolute">Absolute</option>
+                    <option value="percentage">YoY % Change</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Key Financial KPIs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-8">
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">Market Cap</p>
+                <p id="kpi-market-cap" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">Revenue</p>
+                <p id="kpi-revenue" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">Net Profit</p>
+                <p id="kpi-net-profit" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">EBITDA</p>
+                <p id="kpi-ebitda" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">Free Cash Flow</p>
+                <p id="kpi-free-cash-flow" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">Operating Expenses</p>
+                <p id="kpi-operating-expenses" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">EPS</p>
+                <p id="kpi-eps" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">ROE</p>
+                <p id="kpi-roe" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">P/E Ratio</p>
+                <p id="kpi-pe-ratio" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">Dividend Yield</p>
+                <p id="kpi-dividend-yield" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">Debt-to-Equity</p>
+                <p id="kpi-debt-to-equity" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-neon-green">
+                <p class="text-sm text-gray-400">CapEx</p>
+                <p id="kpi-capex" class="text-xl font-semibold text-white mt-1">N/A</p>
+            </div>
+        </div>
+
+        <!-- Stock Market Data Visualization -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Stock Price Trends (2015–2025)</h2>
+                <div class="chart-container">
+                    <canvas id="stockPriceChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Trading Volume & Volatility</h2>
+                <div class="chart-container">
+                    <canvas id="tradingVolumeChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Comparison: Emaar vs DFM Index vs Aldar</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Segment-Wise Business Analysis -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Revenue & Profit by Segment</h2>
+                <div class="chart-container">
+                    <canvas id="segmentRevenueProfitChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Unit Sales by Type</h2>
+                <div class="chart-container">
+                    <canvas id="unitSalesChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Occupancy Rates (Malls & Hotels)</h2>
+                <div class="chart-container">
+                    <canvas id="occupancyRateChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Project Completion Tracker</h2>
+                <div class="chart-container">
+                    <canvas id="projectCompletionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Geographic Breakdown -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Revenue & Profit by Geography</h2>
+                <div class="chart-container">
+                    <canvas id="geoRevenueProfitChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Revenue Share by Region</h2>
+                <div class="chart-container">
+                    <canvas id="revenueSharePieChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Map of Projects by Region (Conceptual)</h2>
+                <div class="p-4 text-center text-gray-400">
+                    <!-- Placeholder for a more complex interactive map -->
+                    <p>A detailed interactive map showing project locations would be integrated here.</p>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-gray-700 p-3 rounded-md">Dubai: 150+ Projects</div>
+                        <div class="bg-gray-700 p-3 rounded-md">Abu Dhabi: 20+ Projects</div>
+                        <div class="bg-gray-700 p-3 rounded-md">Egypt: 10+ Projects</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series & Growth Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">YoY Growth % (Revenue, Profit, Units Sold)</h2>
+                <div class="chart-container">
+                    <canvas id="yoyGrowthChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">CAGR for Key Metrics (2015-2025)</h2>
+                <div class="chart-container">
+                    <canvas id="cagrChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Investor Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Shareholder Structure</h2>
+                <div class="chart-container">
+                    <canvas id="shareholderChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Dividend Payout History</h2>
+                <div class="chart-container">
+                    <canvas id="dividendPayoutChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer & Market Insights -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Buyer Nationality Mix (Top 5)</h2>
+                <div class="chart-container">
+                    <canvas id="nationalityMixChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-dark-card rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4 text-neon-green">Sales by Customer Segment</h2>
+                <div class="chart-container">
+                    <canvas id="customerSegmentSalesChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictive Analysis Section -->
+        <div class="bg-dark-card rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-lg font-semibold mb-4 text-neon-green">Predictive Analysis</h2>
+            <div class="flex flex-wrap gap-4 items-center mb-4">
+                <div class="flex flex-col">
+                    <label for="prediction-year" class="text-sm font-medium text-e0e0e0 mb-1">Predict for Year:</label>
+                    <input type="number" id="prediction-year" value="2026" min="2026" class="p-2 rounded-md bg-gray-700 border border-gray-600 text-white focus:ring-neon-green focus:border-neon-green w-24">
+                </div>
+                <button id="predict-button" class="mt-4 md:mt-0 px-4 py-2 bg-neon-green text-black font-semibold rounded-md shadow-md hover:bg-opacity-80 transition-colors duration-200">
+                    Predict Trends
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                <div class="bg-gray-700 rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-gold">
+                    <p class="text-sm text-gray-400">Predicted Revenue</p>
+                    <p id="predicted-revenue" class="text-xl font-semibold text-white mt-1">N/A</p>
+                </div>
+                <div class="bg-gray-700 rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-gold">
+                    <p class="text-sm text-gray-400">Predicted Net Profit</p>
+                    <p id="predicted-net-profit" class="text-xl font-semibold text-white mt-1">N/A</p>
+                </div>
+                <div class="bg-gray-700 rounded-lg shadow-md p-4 flex flex-col items-center justify-center border-b-2 border-gold">
+                    <p class="text-sm text-gray-400">Predicted Stock Price</p>
+                    <p id="predicted-stock-price" class="text-xl font-semibold text-white mt-1">N/A</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Mock Data for Emaar Properties (2015-2025)
+        // All values are in Millions AED unless otherwise specified (e.g., EPS, Ratios, Percentages)
+        const emaarData = [
+            // 2015
+            {
+                Year: 2015,
+                Market_Capitalization: 60000, Revenue: 13000, Net_Profit: 4000, EBITDA: 6000, Free_Cash_Flow: 3000, Operating_Expenses: 7000,
+                EPS: 0.55, ROE: 0.12, PE_Ratio: 15.0, Dividend_Yield: 0.03, Dividend_Payout_Ratio: 0.50, Debt_to_Equity: 0.8, CapEx: 2500,
+                Stock_Price: 5.50, Volume_Traded: 1500000000, Volatility: 0.02,
+                Residential_Revenue: 7000, Commercial_Revenue: 2000, Malls_Revenue: 2500, Hospitality_Revenue: 1500,
+                Residential_Profit: 2500, Commercial_Profit: 500, Malls_Profit: 700, Hospitality_Profit: 300,
+                Villas_Units_Sold: 1200, Apartments_Units_Sold: 3000, Commercial_Units_Sold: 150,
+                Malls_Occupancy_Rate: 0.90, Hotels_Occupancy_Rate: 0.85,
+                Projects_Completed: 10, Projects_Ongoing: 25,
+                Dubai_Revenue: 10000, Abu_Dhabi_Revenue: 1000, Egypt_Revenue: 1000, Other_International_Revenue: 1000,
+                Dubai_Profit: 3500, Abu_Dhabi_Profit: 150, Egypt_Profit: 150, Other_International_Profit: 200,
+                Shareholder_Institutional: 0.60, Shareholder_Retail: 0.40, Shareholder_Local: 0.70, Shareholder_Foreign: 0.30,
+                Buyer_Nationality_UAE: 0.40, Buyer_Nationality_KSA: 0.15, Buyer_Nationality_India: 0.10, Buyer_Nationality_UK: 0.08, Buyer_Nationality_China: 0.07,
+                Customer_Segment_HighNetWorth: 0.30, Customer_Segment_MidMarket: 0.50, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 3500, Aldar_Stock_Price: 2.00
+            },
+            // 2016
+            {
+                Year: 2016,
+                Market_Capitalization: 65000, Revenue: 14500, Net_Profit: 4500, EBITDA: 6800, Free_Cash_Flow: 3500, Operating_Expenses: 7700,
+                EPS: 0.60, ROE: 0.13, PE_Ratio: 14.5, Dividend_Yield: 0.032, Dividend_Payout_Ratio: 0.52, Debt_to_Equity: 0.75, CapEx: 2800,
+                Stock_Price: 6.00, Volume_Traded: 1600000000, Volatility: 0.018,
+                Residential_Revenue: 8000, Commercial_Revenue: 2200, Malls_Revenue: 2800, Hospitality_Revenue: 1500,
+                Residential_Profit: 2800, Commercial_Profit: 600, Malls_Profit: 800, Hospitality_Profit: 300,
+                Villas_Units_Sold: 1300, Apartments_Units_Sold: 3200, Commercial_Units_Sold: 160,
+                Malls_Occupancy_Rate: 0.91, Hotels_Occupancy_Rate: 0.86,
+                Projects_Completed: 12, Projects_Ongoing: 28,
+                Dubai_Revenue: 11000, Abu_Dhabi_Revenue: 1200, Egypt_Revenue: 1300, Other_International_Revenue: 1000,
+                Dubai_Profit: 3800, Abu_Dhabi_Profit: 180, Egypt_Profit: 180, Other_International_Profit: 340,
+                Shareholder_Institutional: 0.62, Shareholder_Retail: 0.38, Shareholder_Local: 0.68, Shareholder_Foreign: 0.32,
+                Buyer_Nationality_UAE: 0.38, Buyer_Nationality_KSA: 0.16, Buyer_Nationality_India: 0.11, Buyer_Nationality_UK: 0.09, Buyer_Nationality_China: 0.08,
+                Customer_Segment_HighNetWorth: 0.32, Customer_Segment_MidMarket: 0.48, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 3650, Aldar_Stock_Price: 2.15
+            },
+            // 2017
+            {
+                Year: 2017,
+                Market_Capitalization: 70000, Revenue: 15800, Net_Profit: 5000, EBITDA: 7500, Free_Cash_Flow: 4000, Operating_Expenses: 8300,
+                EPS: 0.65, ROE: 0.14, PE_Ratio: 14.0, Dividend_Yield: 0.035, Dividend_Payout_Ratio: 0.55, Debt_to_Equity: 0.70, CapEx: 3000,
+                Stock_Price: 6.50, Volume_Traded: 1700000000, Volatility: 0.019,
+                Residential_Revenue: 8800, Commercial_Revenue: 2500, Malls_Revenue: 3000, Hospitality_Revenue: 1500,
+                Residential_Profit: 3000, Commercial_Profit: 700, Malls_Profit: 900, Hospitality_Profit: 400,
+                Villas_Units_Sold: 1400, Apartments_Units_Sold: 3500, Commercial_Units_Sold: 170,
+                Malls_Occupancy_Rate: 0.92, Hotels_Occupancy_Rate: 0.87,
+                Projects_Completed: 15, Projects_Ongoing: 30,
+                Dubai_Revenue: 12000, Abu_Dhabi_Revenue: 1300, Egypt_Revenue: 1500, Other_International_Revenue: 1000,
+                Dubai_Profit: 4000, Abu_Dhabi_Profit: 200, Egypt_Profit: 200, Other_International_Profit: 600,
+                Shareholder_Institutional: 0.64, Shareholder_Retail: 0.36, Shareholder_Local: 0.66, Shareholder_Foreign: 0.34,
+                Buyer_Nationality_UAE: 0.36, Buyer_Nationality_KSA: 0.17, Buyer_Nationality_India: 0.12, Buyer_Nationality_UK: 0.10, Buyer_Nationality_China: 0.09,
+                Customer_Segment_HighNetWorth: 0.34, Customer_Segment_MidMarket: 0.46, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 3800, Aldar_Stock_Price: 2.30
+            },
+            // 2018
+            {
+                Year: 2018,
+                Market_Capitalization: 72000, Revenue: 17000, Net_Profit: 5200, EBITDA: 8000, Free_Cash_Flow: 4200, Operating_Expenses: 8800,
+                EPS: 0.68, ROE: 0.145, PE_Ratio: 13.8, Dividend_Yield: 0.036, Dividend_Payout_Ratio: 0.56, Debt_to_Equity: 0.68, CapEx: 3200,
+                Stock_Price: 6.80, Volume_Traded: 1800000000, Volatility: 0.02,
+                Residential_Revenue: 9500, Commercial_Revenue: 2800, Malls_Revenue: 3200, Hospitality_Revenue: 1500,
+                Residential_Profit: 3200, Commercial_Profit: 800, Malls_Profit: 1000, Hospitality_Profit: 200,
+                Villas_Units_Sold: 1500, Apartments_Units_Sold: 3800, Commercial_Units_Sold: 180,
+                Malls_Occupancy_Rate: 0.93, Hotels_Occupancy_Rate: 0.88,
+                Projects_Completed: 18, Projects_Ongoing: 32,
+                Dubai_Revenue: 13000, Abu_Dhabi_Revenue: 1400, Egypt_Revenue: 1600, Other_International_Revenue: 1000,
+                Dubai_Profit: 4200, Abu_Dhabi_Profit: 220, Egypt_Profit: 220, Other_International_Profit: 560,
+                Shareholder_Institutional: 0.65, Shareholder_Retail: 0.35, Shareholder_Local: 0.65, Shareholder_Foreign: 0.35,
+                Buyer_Nationality_UAE: 0.35, Buyer_Nationality_KSA: 0.18, Buyer_Nationality_India: 0.13, Buyer_Nationality_UK: 0.11, Buyer_Nationality_China: 0.10,
+                Customer_Segment_HighNetWorth: 0.35, Customer_Segment_MidMarket: 0.45, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 3950, Aldar_Stock_Price: 2.45
+            },
+            // 2019
+            {
+                Year: 2019,
+                Market_Capitalization: 75000, Revenue: 18500, Net_Profit: 5500, EBITDA: 8500, Free_Cash_Flow: 4500, Operating_Expenses: 9300,
+                EPS: 0.70, ROE: 0.15, PE_Ratio: 13.5, Dividend_Yield: 0.038, Dividend_Payout_Ratio: 0.58, Debt_to_Equity: 0.65, CapEx: 3500,
+                Stock_Price: 7.00, Volume_Traded: 1900000000, Volatility: 0.017,
+                Residential_Revenue: 10000, Commercial_Revenue: 3000, Malls_Revenue: 3500, Hospitality_Revenue: 2000,
+                Residential_Profit: 3500, Commercial_Profit: 900, Malls_Profit: 1100, Hospitality_Profit: 0,
+                Villas_Units_Sold: 1600, Apartments_Units_Sold: 4000, Commercial_Units_Sold: 190,
+                Malls_Occupancy_Rate: 0.94, Hotels_Occupancy_Rate: 0.89,
+                Projects_Completed: 20, Projects_Ongoing: 35,
+                Dubai_Revenue: 14000, Abu_Dhabi_Revenue: 1500, Egypt_Revenue: 1800, Other_International_Revenue: 1200,
+                Dubai_Profit: 4500, Abu_Dhabi_Profit: 250, Egypt_Profit: 250, Other_International_Profit: 500,
+                Shareholder_Institutional: 0.66, Shareholder_Retail: 0.34, Shareholder_Local: 0.64, Shareholder_Foreign: 0.36,
+                Buyer_Nationality_UAE: 0.34, Buyer_Nationality_KSA: 0.19, Buyer_Nationality_India: 0.14, Buyer_Nationality_UK: 0.12, Buyer_Nationality_China: 0.11,
+                Customer_Segment_HighNetWorth: 0.36, Customer_Segment_MidMarket: 0.44, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 4100, Aldar_Stock_Price: 2.60
+            },
+            // 2020 (COVID Impact)
+            {
+                Year: 2020,
+                Market_Capitalization: 68000, Revenue: 15000, Net_Profit: 3000, EBITDA: 6000, Free_Cash_Flow: 2000, Operating_Expenses: 9000,
+                EPS: 0.40, ROE: 0.08, PE_Ratio: 17.0, Dividend_Yield: 0.02, Dividend_Payout_Ratio: 0.75, Debt_to_Equity: 0.70, CapEx: 2000,
+                Stock_Price: 5.00, Volume_Traded: 2000000000, Volatility: 0.03,
+                Residential_Revenue: 7000, Commercial_Revenue: 1500, Malls_Revenue: 3500, Hospitality_Revenue: 3000,
+                Residential_Profit: 1500, Commercial_Profit: 300, Malls_Profit: 700, Hospitality_Profit: 500,
+                Villas_Units_Sold: 1000, Apartments_Units_Sold: 2500, Commercial_Units_Sold: 100,
+                Malls_Occupancy_Rate: 0.70, Hotels_Occupancy_Rate: 0.60,
+                Projects_Completed: 15, Projects_Ongoing: 30,
+                Dubai_Revenue: 11000, Abu_Dhabi_Revenue: 1000, Egypt_Revenue: 1500, Other_International_Revenue: 1500,
+                Dubai_Profit: 2500, Abu_Dhabi_Profit: 100, Egypt_Profit: 100, Other_International_Profit: 300,
+                Shareholder_Institutional: 0.68, Shareholder_Retail: 0.32, Shareholder_Local: 0.62, Shareholder_Foreign: 0.38,
+                Buyer_Nationality_UAE: 0.30, Buyer_Nationality_KSA: 0.15, Buyer_Nationality_India: 0.10, Buyer_Nationality_UK: 0.08, Buyer_Nationality_China: 0.07,
+                Customer_Segment_HighNetWorth: 0.25, Customer_Segment_MidMarket: 0.45, Customer_Segment_Affordable: 0.30,
+                DFM_Index: 2500, Aldar_Stock_Price: 1.80
+            },
+            // 2021 (Recovery)
+            {
+                Year: 2021,
+                Market_Capitalization: 80000, Revenue: 20000, Net_Profit: 6000, EBITDA: 9000, Free_Cash_Flow: 5000, Operating_Expenses: 11000,
+                EPS: 0.75, ROE: 0.16, PE_Ratio: 12.0, Dividend_Yield: 0.04, Dividend_Payout_Ratio: 0.53, Debt_to_Equity: 0.60, CapEx: 4000,
+                Stock_Price: 8.00, Volume_Traded: 2200000000, Volatility: 0.025,
+                Residential_Revenue: 12000, Commercial_Revenue: 3000, Malls_Revenue: 3000, Hospitality_Revenue: 2000,
+                Residential_Profit: 4000, Commercial_Profit: 1000, Malls_Profit: 600, Hospitality_Profit: 400,
+                Villas_Units_Sold: 1800, Apartments_Units_Sold: 4500, Commercial_Units_Sold: 200,
+                Malls_Occupancy_Rate: 0.85, Hotels_Occupancy_Rate: 0.75,
+                Projects_Completed: 22, Projects_Ongoing: 38,
+                Dubai_Revenue: 15000, Abu_Dhabi_Revenue: 2000, Egypt_Revenue: 2000, Other_International_Revenue: 1000,
+                Dubai_Profit: 5000, Abu_Dhabi_Profit: 300, Egypt_Profit: 300, Other_International_Profit: 400,
+                Shareholder_Institutional: 0.67, Shareholder_Retail: 0.33, Shareholder_Local: 0.63, Shareholder_Foreign: 0.37,
+                Buyer_Nationality_UAE: 0.35, Buyer_Nationality_KSA: 0.18, Buyer_Nationality_India: 0.12, Buyer_Nationality_UK: 0.09, Buyer_Nationality_China: 0.08,
+                Customer_Segment_HighNetWorth: 0.30, Customer_Segment_MidMarket: 0.50, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 3200, Aldar_Stock_Price: 2.80
+            },
+            // 2022 (Strong Growth)
+            {
+                Year: 2022,
+                Market_Capitalization: 95000, Revenue: 25000, Net_Profit: 8000, EBITDA: 11000, Free_Cash_Flow: 6000, Operating_Expenses: 14000,
+                EPS: 0.90, ROE: 0.18, PE_Ratio: 10.5, Dividend_Yield: 0.045, Dividend_Payout_Ratio: 0.50, Debt_to_Equity: 0.55, CapEx: 5000,
+                Stock_Price: 9.50, Volume_Traded: 2500000000, Volatility: 0.02,
+                Residential_Revenue: 15000, Commercial_Revenue: 4000, Malls_Revenue: 3500, Hospitality_Revenue: 2500,
+                Residential_Profit: 5500, Commercial_Profit: 1200, Malls_Profit: 700, Hospitality_Profit: 600,
+                Villas_Units_Sold: 2000, Apartments_Units_Sold: 5000, Commercial_Units_Sold: 220,
+                Malls_Occupancy_Rate: 0.90, Hotels_Occupancy_Rate: 0.80,
+                Projects_Completed: 25, Projects_Ongoing: 40,
+                Dubai_Revenue: 18000, Abu_Dhabi_Revenue: 2500, Egypt_Revenue: 2500, Other_International_Revenue: 2000,
+                Dubai_Profit: 6500, Abu_Dhabi_Profit: 400, Egypt_Profit: 400, Other_International_Profit: 700,
+                Shareholder_Institutional: 0.69, Shareholder_Retail: 0.31, Shareholder_Local: 0.61, Shareholder_Foreign: 0.39,
+                Buyer_Nationality_UAE: 0.38, Buyer_Nationality_KSA: 0.20, Buyer_Nationality_India: 0.13, Buyer_Nationality_UK: 0.10, Buyer_Nationality_China: 0.09,
+                Customer_Segment_HighNetWorth: 0.35, Customer_Segment_MidMarket: 0.45, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 3800, Aldar_Stock_Price: 3.20
+            },
+            // 2023 (Continued Growth)
+            {
+                Year: 2023,
+                Market_Capitalization: 110000, Revenue: 28000, Net_Profit: 9500, EBITDA: 12500, Free_Cash_Flow: 7000, Operating_Expenses: 15500,
+                EPS: 1.05, ROE: 0.19, PE_Ratio: 10.0, Dividend_Yield: 0.048, Dividend_Payout_Ratio: 0.48, Debt_to_Equity: 0.50, CapEx: 5500,
+                Stock_Price: 11.00, Volume_Traded: 2800000000, Volatility: 0.018,
+                Residential_Revenue: 17000, Commercial_Revenue: 4500, Malls_Revenue: 4000, Hospitality_Revenue: 2500,
+                Residential_Profit: 6500, Commercial_Profit: 1500, Malls_Profit: 800, Hospitality_Profit: 700,
+                Villas_Units_Sold: 2200, Apartments_Units_Sold: 5500, Commercial_Units_Sold: 240,
+                Malls_Occupancy_Rate: 0.92, Hotels_Occupancy_Rate: 0.82,
+                Projects_Completed: 28, Projects_Ongoing: 42,
+                Dubai_Revenue: 20000, Abu_Dhabi_Revenue: 3000, Egypt_Revenue: 2800, Other_International_Revenue: 2200,
+                Dubai_Profit: 7500, Abu_Dhabi_Profit: 500, Egypt_Profit: 500, Other_International_Profit: 1000,
+                Shareholder_Institutional: 0.70, Shareholder_Retail: 0.30, Shareholder_Local: 0.60, Shareholder_Foreign: 0.40,
+                Buyer_Nationality_UAE: 0.40, Buyer_Nationality_KSA: 0.22, Buyer_Nationality_India: 0.14, Buyer_Nationality_UK: 0.11, Buyer_Nationality_China: 0.10,
+                Customer_Segment_HighNetWorth: 0.40, Customer_Segment_MidMarket: 0.40, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 4200, Aldar_Stock_Price: 3.50
+            },
+            // 2024 (Projected Growth)
+            {
+                Year: 2024,
+                Market_Capitalization: 125000, Revenue: 31000, Net_Profit: 11000, EBITDA: 14000, Free_Cash_Flow: 8000, Operating_Expenses: 17000,
+                EPS: 1.20, ROE: 0.20, PE_Ratio: 9.5, Dividend_Yield: 0.05, Dividend_Payout_Ratio: 0.45, Debt_to_Equity: 0.48, CapEx: 6000,
+                Stock_Price: 12.50, Volume_Traded: 3000000000, Volatility: 0.017,
+                Residential_Revenue: 19000, Commercial_Revenue: 5000, Malls_Revenue: 4500, Hospitality_Revenue: 2500,
+                Residential_Profit: 7500, Commercial_Profit: 1800, Malls_Profit: 900, Hospitality_Profit: 800,
+                Villas_Units_Sold: 2400, Apartments_Units_Sold: 6000, Commercial_Units_Sold: 260,
+                Malls_Occupancy_Rate: 0.93, Hotels_Occupancy_Rate: 0.84,
+                Projects_Completed: 30, Projects_Ongoing: 45,
+                Dubai_Revenue: 22000, Abu_Dhabi_Revenue: 3500, Egypt_Revenue: 3000, Other_International_Revenue: 2500,
+                Dubai_Profit: 8500, Abu_Dhabi_Profit: 600, Egypt_Profit: 600, Other_International_Profit: 1300,
+                Shareholder_Institutional: 0.71, Shareholder_Retail: 0.29, Shareholder_Local: 0.59, Shareholder_Foreign: 0.41,
+                Buyer_Nationality_UAE: 0.42, Buyer_Nationality_KSA: 0.23, Buyer_Nationality_India: 0.15, Buyer_Nationality_UK: 0.12, Buyer_Nationality_China: 0.11,
+                Customer_Segment_HighNetWorth: 0.42, Customer_Segment_MidMarket: 0.38, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 4500, Aldar_Stock_Price: 3.80
+            },
+            // 2025 (Projected Growth)
+            {
+                Year: 2025,
+                Market_Capitalization: 140000, Revenue: 34000, Net_Profit: 12500, EBITDA: 15500, Free_Cash_Flow: 9000, Operating_Expenses: 18500,
+                EPS: 1.35, ROE: 0.21, PE_Ratio: 9.0, Dividend_Yield: 0.052, Dividend_Payout_Ratio: 0.42, Debt_to_Equity: 0.45, CapEx: 6500,
+                Stock_Price: 14.00, Volume_Traded: 3200000000, Volatility: 0.016,
+                Residential_Revenue: 21000, Commercial_Revenue: 5500, Malls_Revenue: 5000, Hospitality_Revenue: 2500,
+                Residential_Profit: 8500, Commercial_Profit: 2000, Malls_Profit: 1000, Hospitality_Profit: 1000,
+                Villas_Units_Sold: 2600, Apartments_Units_Sold: 6500, Commercial_Units_Sold: 280,
+                Malls_Occupancy_Rate: 0.94, Hotels_Occupancy_Rate: 0.85,
+                Projects_Completed: 32, Projects_Ongoing: 48,
+                Dubai_Revenue: 24000, Abu_Dhabi_Revenue: 4000, Egypt_Revenue: 3200, Other_International_Revenue: 2800,
+                Dubai_Profit: 9500, Abu_Dhabi_Profit: 700, Egypt_Profit: 700, Other_International_Profit: 1600,
+                Shareholder_Institutional: 0.72, Shareholder_Retail: 0.28, Shareholder_Local: 0.58, Shareholder_Foreign: 0.42,
+                Buyer_Nationality_UAE: 0.45, Buyer_Nationality_KSA: 0.24, Buyer_Nationality_India: 0.16, Buyer_Nationality_UK: 0.13, Buyer_Nationality_China: 0.12,
+                Customer_Segment_HighNetWorth: 0.45, Customer_Segment_MidMarket: 0.35, Customer_Segment_Affordable: 0.20,
+                DFM_Index: 4800, Aldar_Stock_Price: 4.20
+            }
+        ];
+
+        // Chart instances
+        let stockPriceChart, tradingVolumeChart, comparisonChart, segmentRevenueProfitChart, unitSalesChart,
+            occupancyRateChart, projectCompletionChart, geoRevenueProfitChart, revenueSharePieChart,
+            yoyGrowthChart, cagrChart, shareholderChart, dividendPayoutChart, nationalityMixChart,
+            customerSegmentSalesChart;
+
+        // Exchange rate for AED to USD (approximate)
+        const AED_TO_USD_RATE = 0.27;
+
+        // Helper function to format currency
+        function formatCurrency(value, currency, isK = false) {
+            const factor = isK ? 1000 : 1; // For thousands, like 1.5K
+            let formattedValue = (value / factor).toFixed(isK ? 1 : 0); // Format to 1 decimal for K, 0 for full
+            if (currency === 'USD') {
+                return `$${(value * AED_TO_USD_RATE / factor).toFixed(isK ? 1 : 0)}${isK ? 'K' : ''}`;
+            }
+            return `AED ${formattedValue}${isK ? 'K' : ''}`;
+        }
+
+        // Helper function to calculate rolling standard deviation (Volatility)
+        function calculateRollingStdDev(data, windowSize) {
+            const stdDevs = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < windowSize - 1) {
+                    stdDevs.push(null); // Not enough data for initial window
+                } else {
+                    const windowData = data.slice(i - windowSize + 1, i + 1);
+                    const mean = windowData.reduce((sum, val) => sum + val, 0) / windowData.length;
+                    const variance = windowData.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / windowData.length;
+                    stdDevs.push(Math.sqrt(variance));
+                }
+            }
+            return stdDevs;
+        }
+
+        // Helper function to calculate YoY Growth
+        function calculateYoYGrowth(currentValue, previousValue) {
+            if (previousValue === 0 || previousValue === null || previousValue === undefined) {
+                return null; // Avoid division by zero or invalid previous data
+            }
+            return ((currentValue - previousValue) / previousValue) * 100;
+        }
+
+        // Helper function to calculate CAGR
+        function calculateCAGR(startValue, endValue, years) {
+            if (startValue <= 0 || years <= 0) return null;
+            return (Math.pow(endValue / startValue, 1 / years) - 1) * 100;
+        }
+
+        // Initialize Filters
+        function initializeFilters() {
+            const yearFilter = document.getElementById('year-filter');
+            const years = emaarData.map(d => d.Year);
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                yearFilter.appendChild(option);
+            });
+            // Set default to the latest year
+            yearFilter.value = Math.max(...years);
+
+            // Add event listeners
+            yearFilter.addEventListener('change', updateDashboard);
+            document.getElementById('segment-filter').addEventListener('change', updateDashboard);
+            document.getElementById('region-filter').addEventListener('change', updateDashboard);
+            document.getElementById('currency-toggle').addEventListener('change', updateDashboard);
+            document.getElementById('chart-mode-toggle').addEventListener('change', updateDashboard);
+            document.getElementById('predict-button').addEventListener('click', runPrediction); // Add event listener for predict button
+        }
+
+        // Update KPI Cards
+        function updateKPIs(data, currency) {
+            const format = (value) => formatCurrency(value, currency);
+            const formatRatio = (value) => value !== null ? value.toFixed(2) : 'N/A';
+            const formatPercent = (value) => value !== null ? `${(value * 100).toFixed(2)}%` : 'N/A';
+
+            document.getElementById('kpi-market-cap').textContent = format(data.Market_Capitalization);
+            document.getElementById('kpi-revenue').textContent = format(data.Revenue);
+            document.getElementById('kpi-net-profit').textContent = format(data.Net_Profit);
+            document.getElementById('kpi-ebitda').textContent = format(data.EBITDA);
+            document.getElementById('kpi-free-cash-flow').textContent = format(data.Free_Cash_Flow);
+            document.getElementById('kpi-operating-expenses').textContent = format(data.Operating_Expenses);
+            document.getElementById('kpi-eps').textContent = formatRatio(data.EPS);
+            document.getElementById('kpi-roe').textContent = formatPercent(data.ROE);
+            document.getElementById('kpi-pe-ratio').textContent = formatRatio(data.PE_Ratio);
+            document.getElementById('kpi-dividend-yield').textContent = formatPercent(data.Dividend_Yield);
+            document.getElementById('kpi-debt-to-equity').textContent = formatRatio(data.Debt_to_Equity);
+            document.getElementById('kpi-capex').textContent = format(data.CapEx);
+        }
+
+        // Chart.js Global Defaults
+        Chart.defaults.color = '#e0e0e0'; // Default text color
+        Chart.defaults.borderColor = '#444444'; // Default border color for grid lines
+
+        // Function to create/update charts
+        function createOrUpdateChart(chartId, type, labels, datasets, options) {
+            const ctx = document.getElementById(chartId);
+            if (!ctx) {
+                console.error(`Canvas element with ID '${chartId}' not found.`);
+                return; // Exit if canvas not found
+            }
+            const chartContext = ctx.getContext('2d');
+            let chartInstance = window[chartId];
+
+            // If a chart instance exists and is a Chart.js instance, destroy it before creating a new one
+            // This ensures a clean slate and avoids issues with updating incompatible chart types or structures.
+            if (chartInstance && typeof chartInstance.destroy === 'function') {
+                chartInstance.destroy();
+                window[chartId] = null; // Clear the reference
+            }
+
+            // Create a new chart instance
+            window[chartId] = new Chart(chartContext, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: options
+            });
+        }
+
+        // Update all charts
+        function updateCharts(currentYearMetrics, allData, currency, chartMode) { // Renamed filteredData to currentYearMetrics
+            const years = allData.map(d => d.Year);
+            const currentYearData = currentYearMetrics; // Directly use the passed object
+
+            const currencyFactor = (currency === 'USD' ? AED_TO_USD_RATE : 1);
+            const currencySymbol = (currency === 'USD' ? '$' : 'AED ');
+
+            // Common chart options
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#e0e0e0'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(42, 42, 42, 0.9)',
+                        titleColor: '#39ff14',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#39ff14',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: '#444444'
+                        },
+                        ticks: {
+                            color: '#e0e0e0'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: '#444444'
+                        },
+                        ticks: {
+                            color: '#e0e0e0'
+                        }
+                    }
+                }
+            };
+
+            // --- Stock Price Trends ---
+            const stockPrices = allData.map(d => d.Stock_Price);
+            const dfmPrices = allData.map(d => d.DFM_Index / 1000); // Scale DFM for comparison
+            const aldarPrices = allData.map(d => d.Aldar_Stock_Price);
+
+            let stockPriceLabels = years;
+            let stockPriceDatasets = [
+                {
+                    label: 'Emaar Stock Price',
+                    data: stockPrices,
+                    borderColor: '#39ff14',
+                    backgroundColor: 'rgba(57, 255, 20, 0.2)',
+                    tension: 0.3,
+                    fill: false
+                }
+            ];
+
+            if (chartMode === 'percentage') {
+                const emaarYoY = stockPrices.map((val, i) => calculateYoYGrowth(val, stockPrices[i - 1]));
+                stockPriceLabels = years.slice(1); // Remove first year for YoY
+                stockPriceDatasets[0].data = emaarYoY.slice(1);
+                stockPriceDatasets[0].label = 'Emaar Stock Price YoY % Change';
+                stockPriceDatasets[0].yAxisID = 'y'; // Ensure it uses the correct y-axis
+                commonOptions.scales.y.ticks.callback = function(value) { return value + '%'; };
+            } else {
+                commonOptions.scales.y.ticks.callback = function(value) { return currencySymbol + value.toFixed(2); };
+            }
+
+            createOrUpdateChart('stockPriceChart', 'line', stockPriceLabels, stockPriceDatasets, commonOptions);
+
+
+            // --- Trading Volume & Volatility ---
+            const tradingVolumes = allData.map(d => d.Volume_Traded / 1000000000); // Billions
+            const volatility = allData.map(d => d.Volatility * 100); // Convert to percentage
+
+            let volumeLabels = years;
+            let volumeDatasets = [
+                {
+                    label: 'Trading Volume (Billions)',
+                    data: tradingVolumes,
+                    backgroundColor: 'rgba(57, 255, 20, 0.4)',
+                    borderColor: '#39ff14',
+                    fill: true,
+                    yAxisID: 'yVolume'
+                },
+                {
+                    label: 'Volatility (Std Dev %)',
+                    data: volatility,
+                    borderColor: '#C5A253',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    pointRadius: 3,
+                    yAxisID: 'yVolatility'
+                }
+            ];
+
+            const volumeOptions = {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    yVolume: {
+                        type: 'linear',
+                        position: 'left',
+                        grid: { color: '#444444' },
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return value + 'B'; }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Volume',
+                            color: '#e0e0e0'
+                        }
+                    },
+                    yVolatility: {
+                        type: 'linear',
+                        position: 'right',
+                        grid: { drawOnChartArea: false, color: '#444444' }, // Only draw grid for left axis
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return value + '%'; }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Volatility',
+                            color: '#e0e0e0'
+                        }
+                    }
+                }
+            };
+            createOrUpdateChart('tradingVolumeChart', 'line', volumeLabels, volumeDatasets, volumeOptions);
+
+
+            // --- Comparison Chart ---
+            const comparisonDatasets = [
+                {
+                    label: 'Emaar Properties',
+                    data: allData.map(d => d.Stock_Price),
+                    borderColor: '#39ff14',
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    fill: false
+                },
+                {
+                    label: 'DFM Index (Scaled)',
+                    data: allData.map(d => d.DFM_Index / 1000), // Scale for visual comparison
+                    borderColor: '#C5A253',
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    fill: false
+                },
+                {
+                    label: 'Aldar Properties',
+                    data: allData.map(d => d.Aldar_Stock_Price),
+                    borderColor: '#00BFFF', // A different color for Aldar
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    fill: false
+                }
+            ];
+            const comparisonOptions = {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    y: {
+                        ...commonOptions.scales.y,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return currencySymbol + value.toFixed(2); }
+                        }
+                    }
+                }
+            };
+            createOrUpdateChart('comparisonChart', 'line', years, comparisonDatasets, comparisonOptions);
+
+
+            // --- Segment-Wise Revenue & Profit ---
+            const segments = ['Residential', 'Commercial', 'Malls', 'Hospitality'];
+            const segmentRevenue = segments.map(s => currentYearData[`${s}_Revenue`] * currencyFactor);
+            const segmentProfit = segments.map(s => currentYearData[`${s}_Profit`] * currencyFactor);
+
+            createOrUpdateChart('segmentRevenueProfitChart', 'bar', segments, [
+                {
+                    label: 'Revenue',
+                    data: segmentRevenue,
+                    backgroundColor: '#39ff14',
+                    borderColor: '#39ff14',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Profit',
+                    data: segmentProfit,
+                    backgroundColor: '#C5A253',
+                    borderColor: '#C5A253',
+                    borderWidth: 1
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { stacked: true, ...commonOptions.scales.x },
+                    y: {
+                        stacked: true,
+                        ...commonOptions.scales.y,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return formatCurrency(value, currency, true); }
+                        }
+                    }
+                }
+            });
+
+            // --- Unit Sales by Type ---
+            const unitTypes = ['Villas', 'Apartments', 'Commercial Units'];
+            const unitSalesData = unitTypes.map(type => currentYearData[`${type}_Units_Sold`]);
+            createOrUpdateChart('unitSalesChart', 'bar', unitTypes, [
+                {
+                    label: 'Units Sold',
+                    data: unitSalesData,
+                    backgroundColor: ['#39ff14', '#C5A253', '#00BFFF'],
+                    borderColor: ['#39ff14', '#C5A253', '#00BFFF'],
+                    borderWidth: 1
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    y: {
+                        ...commonOptions.scales.y,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return value.toLocaleString(); }
+                        }
+                    }
+                }
+            });
+
+            // --- Occupancy Rates ---
+            const occupancyLabels = ['Malls Occupancy Rate', 'Hotels Occupancy Rate'];
+            const occupancyData = [
+                currentYearData.Malls_Occupancy_Rate * 100,
+                currentYearData.Hotels_Occupancy_Rate * 100
+            ];
+            createOrUpdateChart('occupancyRateChart', 'bar', occupancyLabels, [
+                {
+                    label: 'Occupancy Rate (%)',
+                    data: occupancyData,
+                    backgroundColor: ['#39ff14', '#C5A253'],
+                    borderColor: ['#39ff14', '#C5A253'],
+                    borderWidth: 1
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    y: {
+                        ...commonOptions.scales.y,
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return value + '%'; }
+                        }
+                    }
+                }
+            });
+
+            // --- Project Completion Tracker (Simplified) ---
+            const projectStatusLabels = ['Projects Completed', 'Projects Ongoing'];
+            const projectStatusData = [
+                currentYearData.Projects_Completed,
+                currentYearData.Projects_Ongoing
+            ];
+            createOrUpdateChart('projectCompletionChart', 'bar', projectStatusLabels, [
+                {
+                    label: 'Number of Projects',
+                    data: projectStatusData,
+                    backgroundColor: ['#39ff14', '#C5A253'],
+                    borderColor: ['#39ff14', '#C5A253'],
+                    borderWidth: 1
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    y: {
+                        ...commonOptions.scales.y,
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#e0e0e0',
+                            stepSize: 5
+                        }
+                    }
+                }
+            });
+
+
+            // --- Geographic Revenue & Profit ---
+            const regions = ['Dubai', 'Abu Dhabi', 'Egypt', 'Other International'];
+            const geoRevenue = regions.map(r => currentYearData[`${r}_Revenue`] * currencyFactor);
+            const geoProfit = regions.map(r => currentYearData[`${r}_Profit`] * currencyFactor);
+
+            createOrUpdateChart('geoRevenueProfitChart', 'bar', regions, [
+                {
+                    label: 'Revenue',
+                    data: geoRevenue,
+                    backgroundColor: '#39ff14',
+                    borderColor: '#39ff14',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Profit',
+                    data: geoProfit,
+                    backgroundColor: '#C5A253',
+                    borderColor: '#C5A253',
+                    borderWidth: 1
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { stacked: true, ...commonOptions.scales.x },
+                    y: {
+                        stacked: true,
+                        ...commonOptions.scales.y,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return formatCurrency(value, currency, true); }
+                        }
+                    }
+                }
+            });
+
+            // --- Revenue Share by Region (Pie Chart) ---
+            createOrUpdateChart('revenueSharePieChart', 'pie', regions, [
+                {
+                    data: geoRevenue,
+                    backgroundColor: ['#39ff14', '#C5A253', '#00BFFF', '#FFD700'], // Neon Green, Gold, Sky Blue, Yellow
+                    hoverOffset: 4
+                }
+            ], {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#e0e0e0'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(42, 42, 42, 0.9)',
+                        titleColor: '#39ff14',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#39ff14',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += formatCurrency(context.parsed, currency, true);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- YoY Growth % (Revenue, Profit, Units Sold) ---
+            const revenueYoY = allData.map((d, i) => calculateYoYGrowth(d.Revenue, allData[i - 1]?.Revenue));
+            const profitYoY = allData.map((d, i) => calculateYoYGrowth(d.Net_Profit, allData[i - 1]?.Net_Profit));
+            const unitsYoY = allData.map((d, i) => calculateYoYGrowth(d.Villas_Units_Sold + d.Apartments_Units_Sold + d.Commercial_Units_Sold,
+                allData[i - 1]?.Villas_Units_Sold + allData[i - 1]?.Apartments_Units_Sold + allData[i - 1]?.Commercial_Units_Sold));
+
+            createOrUpdateChart('yoyGrowthChart', 'line', years.slice(1), [ // Slice to remove first year (no YoY)
+                {
+                    label: 'Revenue YoY %',
+                    data: revenueYoY.slice(1),
+                    borderColor: '#39ff14',
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    fill: false
+                },
+                {
+                    label: 'Net Profit YoY %',
+                    data: profitYoY.slice(1),
+                    borderColor: '#C5A253',
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    fill: false
+                },
+                {
+                    label: 'Units Sold YoY %',
+                    data: unitsYoY.slice(1),
+                    borderColor: '#00BFFF',
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    fill: false
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    y: {
+                        ...commonOptions.scales.y,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return value.toFixed(1) + '%'; }
+                        }
+                    }
+                }
+            });
+
+            // --- CAGR for Key Metrics ---
+            const startYearData = allData.find(d => d.Year === 2015);
+            const endYearData = allData.find(d => d.Year === 2025);
+            const numYears = 2025 - 2015;
+
+            const cagrLabels = ['Revenue CAGR', 'Net Profit CAGR', 'EPS CAGR', 'Market Cap CAGR'];
+            const cagrValues = [
+                calculateCAGR(startYearData.Revenue, endYearData.Revenue, numYears),
+                calculateCAGR(startYearData.Net_Profit, endYearData.Net_Profit, numYears),
+                calculateCAGR(startYearData.EPS, endYearData.EPS, numYears),
+                calculateCAGR(startYearData.Market_Capitalization, endYearData.Market_Capitalization, numYears)
+            ].map(val => val !== null ? val.toFixed(2) : 'N/A');
+
+            createOrUpdateChart('cagrChart', 'bar', cagrLabels, [
+                {
+                    label: 'CAGR (%)',
+                    data: cagrValues,
+                    backgroundColor: ['#39ff14', '#C5A253', '#00BFFF', '#FFD700'],
+                    borderColor: ['#39ff14', '#C5A253', '#00BFFF', '#FFD700'],
+                    borderWidth: 1
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    y: {
+                        ...commonOptions.scales.y,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return value + '%'; }
+                        }
+                    }
+                }
+            });
+
+            // --- Shareholder Structure ---
+            const shareholderLabels = ['Institutional', 'Retail', 'Local', 'Foreign'];
+            const shareholderData = [
+                currentYearData.Shareholder_Institutional * 100,
+                currentYearData.Shareholder_Retail * 100,
+                currentYearData.Shareholder_Local * 100,
+                currentYearData.Shareholder_Foreign * 100
+            ];
+            createOrUpdateChart('shareholderChart', 'doughnut', shareholderLabels, [
+                {
+                    data: shareholderData,
+                    backgroundColor: ['#39ff14', '#C5A253', '#00BFFF', '#FFD700'],
+                    hoverOffset: 4
+                }
+            ], {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#e0e0e0'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(42, 42, 42, 0.9)',
+                        titleColor: '#39ff14',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#39ff14',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed.toFixed(2) + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- Dividend Payout History ---
+            const dividendPayouts = allData.map(d => d.Dividend_Payout_Ratio * 100);
+            createOrUpdateChart('dividendPayoutChart', 'line', years, [
+                {
+                    label: 'Dividend Payout Ratio (%)',
+                    data: dividendPayouts,
+                    borderColor: '#39ff14',
+                    backgroundColor: 'rgba(57, 255, 20, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }
+            ], {
+                ...commonOptions,
+                scales: {
+                    x: { ...commonOptions.scales.x },
+                    y: {
+                        ...commonOptions.scales.y,
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#e0e0e0',
+                            callback: function(value) { return value + '%'; }
+                        }
+                    }
+                }
+            });
+
+            // --- Buyer Nationality Mix ---
+            const nationalityLabels = ['UAE', 'KSA', 'India', 'UK', 'China', 'Other'];
+            const totalOtherNationality = 1 - (currentYearData.Buyer_Nationality_UAE + currentYearData.Buyer_Nationality_KSA +
+                                            currentYearData.Buyer_Nationality_India + currentYearData.Buyer_Nationality_UK +
+                                            currentYearData.Buyer_Nationality_China);
+            const nationalityData = [
+                currentYearData.Buyer_Nationality_UAE * 100,
+                currentYearData.Buyer_Nationality_KSA * 100,
+                currentYearData.Buyer_Nationality_India * 100,
+                currentYearData.Buyer_Nationality_UK * 100,
+                currentYearData.Buyer_Nationality_China * 100,
+                totalOtherNationality * 100
+            ];
+            createOrUpdateChart('nationalityMixChart', 'pie', nationalityLabels, [
+                {
+                    data: nationalityData,
+                    backgroundColor: ['#39ff14', '#C5A253', '#00BFFF', '#FFD700', '#FF6384', '#A020F0'],
+                    hoverOffset: 4
+                }
+            ], {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#e0e0e0'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(42, 42, 42, 0.9)',
+                        titleColor: '#39ff14',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#39ff14',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed.toFixed(2) + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- Sales by Customer Segment ---
+            const customerSegmentLabels = ['High Net Worth', 'Mid Market', 'Affordable'];
+            const customerSegmentData = [
+                currentYearData.Customer_Segment_HighNetWorth * 100,
+                currentYearData.Customer_Segment_MidMarket * 100,
+                currentYearData.Customer_Segment_Affordable * 100
+            ];
+            createOrUpdateChart('customerSegmentSalesChart', 'doughnut', customerSegmentLabels, [
+                {
+                    data: customerSegmentData,
+                    backgroundColor: ['#39ff14', '#C5A253', '#00BFFF'],
+                    hoverOffset: 4
+                }
+            ], {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#e0e0e0'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(42, 42, 42, 0.9)',
+                        titleColor: '#39ff14',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#39ff14',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed.toFixed(2) + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // Function to run predictive analysis
+        function runPrediction() {
+            const targetYear = parseInt(document.getElementById('prediction-year').value);
+            const selectedCurrency = document.getElementById('currency-toggle').value;
+
+            if (isNaN(targetYear) || targetYear <= 2025) {
+                alert("Please enter a future year (after 2025) for prediction.");
+                return;
+            }
+
+            const lastYearData = emaarData[emaarData.length - 1]; // Data for 2025
+            const yearsToPredict = targetYear - lastYearData.Year;
+
+            // Simple linear extrapolation based on average growth from the last 5 years
+            const recentData = emaarData.slice(-5); // Get last 5 years for trend calculation
+
+            const calculateAverageGrowth = (key) => {
+                let totalGrowth = 0;
+                let count = 0;
+                for (let i = 1; i < recentData.length; i++) {
+                    const current = recentData[i][key];
+                    const previous = recentData[i - 1][key];
+                    if (previous !== 0 && previous !== null && previous !== undefined) {
+                        totalGrowth += (current - previous) / previous;
+                        count++;
+                    }
+                }
+                return count > 0 ? totalGrowth / count : 0;
+            };
+
+            const avgRevenueGrowth = calculateAverageGrowth('Revenue');
+            const avgNetProfitGrowth = calculateAverageGrowth('Net_Profit');
+            const avgStockPriceGrowth = calculateAverageGrowth('Stock_Price');
+
+            let predictedRevenue = lastYearData.Revenue;
+            let predictedNetProfit = lastYearData.Net_Profit;
+            let predictedStockPrice = lastYearData.Stock_Price;
+
+            for (let i = 0; i < yearsToPredict; i++) {
+                predictedRevenue *= (1 + avgRevenueGrowth);
+                predictedNetProfit *= (1 + avgNetProfitGrowth);
+                predictedStockPrice *= (1 + avgStockPriceGrowth);
+            }
+
+            // Update prediction KPI cards
+            const format = (value) => formatCurrency(value, selectedCurrency);
+            document.getElementById('predicted-revenue').textContent = format(predictedRevenue);
+            document.getElementById('predicted-net-profit').textContent = format(predictedNetProfit);
+            document.getElementById('predicted-stock-price').textContent = format(predictedStockPrice);
+        }
+
+        // Main update function
+        function updateDashboard() {
+            const selectedYear = parseInt(document.getElementById('year-filter').value);
+            const selectedSegment = document.getElementById('segment-filter').value;
+            const selectedRegion = document.getElementById('region-filter').value;
+            const selectedCurrency = document.getElementById('currency-toggle').value;
+            const selectedChartMode = document.getElementById('chart-mode-toggle').value;
+
+            // Filter data for KPI cards (only current year)
+            let currentYearData = emaarData.find(d => d.Year === selectedYear);
+
+            // Filter data for charts (all years, potentially filtered by segment/region for some charts)
+            let filteredChartData = emaarData;
+
+            // Apply segment and region filters if 'All' is not selected
+            if (selectedSegment !== 'All') {
+                // For simplicity, this filter will affect only segment-specific charts, not overall KPIs or stock data
+                // In a real app, this would require more complex data aggregation
+            }
+            if (selectedRegion !== 'All') {
+                // Similar to segment filter, for geographic charts
+            }
+
+            if (!currentYearData) {
+                console.error("Data for selected year not found:", selectedYear);
+                return;
+            }
+
+            updateKPIs(currentYearData, selectedCurrency);
+            updateCharts(currentYearData, filteredChartData, selectedCurrency, selectedChartMode);
+            // Clear predictions when dashboard year changes
+            document.getElementById('predicted-revenue').textContent = 'N/A';
+            document.getElementById('predicted-net-profit').textContent = 'N/A';
+            document.getElementById('predicted-stock-price').textContent = 'N/A';
+            document.getElementById('prediction-year').value = 2026; // Reset prediction year input
+        }
+
+        // Initial load
+        window.onload = function() {
+            initializeFilters();
+            updateDashboard(); // Render dashboard with initial filter values
+        };
+    </script>
+</body>
+</html>
